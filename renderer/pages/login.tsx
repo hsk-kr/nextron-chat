@@ -5,6 +5,7 @@ import { Theme, makeStyles, createStyles } from '@material-ui/core/styles';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signOut,
 } from 'firebase/auth';
 import { useRouter } from 'next/router';
 import { FormType } from '../types';
@@ -184,6 +185,7 @@ function SignUpForm({ onFormTypeToggle }) {
     setLoading(true);
     createUserWithEmailAndPassword(auth, formInput.email, formInput.password)
       .then(() => {
+        signOut(auth); // prevent to sign in when sign up
         showSuccessMsg('Succeeded to sign up');
         if (onFormTypeToggle) onFormTypeToggle();
       })
