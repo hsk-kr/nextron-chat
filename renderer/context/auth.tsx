@@ -16,7 +16,7 @@ export const redirectMainIfUserExist = () => {
     if (sessionStorage.getItem('user')) {
       router.push('/main');
     }
-  }, []);
+  });
 };
 
 export const redirectLoginIfUserNotExist = () => {
@@ -26,7 +26,7 @@ export const redirectLoginIfUserNotExist = () => {
     if (!sessionStorage.getItem('user')) {
       router.push('/login');
     }
-  }, []);
+  });
 };
 
 export const redirectDependsOnUserExistence = () => {
