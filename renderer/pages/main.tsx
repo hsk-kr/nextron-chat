@@ -411,7 +411,9 @@ function Main() {
       </Head>
       <Grid container className={classes.container}>
         <UserSelectionModal
-          users={userList.filter((u) => u.uid !== user.uid)}
+          users={
+            user === undefined ? [] : userList.filter((u) => u.uid !== user.uid)
+          }
           visible={userSelectionModalVisible}
           onClose={handleModalClose}
           onSubmit={handleModalSubmit}
