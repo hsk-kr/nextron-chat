@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Grid, Button } from '@material-ui/core';
 import { Theme, makeStyles, createStyles } from '@material-ui/core/styles';
 import Message from './Message';
@@ -45,6 +45,7 @@ const useStyles = makeStyles((theme: Theme) =>
 function ChatRoom({ onSubmit, messages, to }: Props) {
   const [message, setMessage] = useState('');
   const classes = useStyles();
+  const scrollRef = useRef<any>();
 
   const handleSubmit = useCallback(() => {
     if (!onSubmit || !message) return;
@@ -53,10 +54,14 @@ function ChatRoom({ onSubmit, messages, to }: Props) {
     setMessage('');
   }, [message, onSubmit]);
 
+  useEffect(() => {
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
   return (
     <Grid container className={classes.chatRoom}>
       <div className={classes.to}>{to}</div>
-      <div className={classes.chatRoomMessages}>
+      <div className={classes.chatRoomMessages} ref={scrollRef}>
         {messages.map((message, messageIdx) => (
           <Message
             key={messageIdx}
