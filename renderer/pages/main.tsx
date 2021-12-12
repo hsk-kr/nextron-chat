@@ -28,6 +28,7 @@ import UserList from '../components/UserList';
 import ChatList from '../components/ChatList';
 import EmptyRoom from '../components/EmptyRoom';
 import ChatRoom from '../components/ChatRoom';
+import UserSelectionModal from '../components/UserSelectionModal';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -63,6 +64,8 @@ function Main() {
   const [users, setUsers] = useState<{ [key: string]: FirebaseUser }>({});
   const [chatRoomIds, setChatRoomIds] = useState<string[]>([]);
   const [chatRooms, setChatRooms] = useState<ChatRoomType[]>([]);
+  const [userSelectionModalVisible, setUserSelectionModalVisible] =
+    useState<boolean>(false);
   const { user } = useAuth();
   const { showErrorMsg } = useAlert();
   const userList = useMemo<FirebaseUser[]>(() => {
@@ -83,6 +86,29 @@ function Main() {
 
     return newUserList;
   }, [users, user]);
+
+  const handleModalOpen = useCallback(() => {
+    setUserSelectionModalVisible(true);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setUserSelectionModalVisible(false);
+  }, []);
+
+  const handleModalSubmit = useCallback(async (userIds: string[]) => {
+    handleModalClose();
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+
+      network.post('openGroupChat', {
+        members: userIds,
+        token,
+      });
+    } catch (err) {
+      showErrorMsg(JSON.stringify(err));
+    }
+  }, []);
 
   const handleUserSelect = useCallback(
     (uid: string, email: string) => () => {
@@ -271,25 +297,58 @@ function Main() {
     );
 
     let unmounted = false;
+    let unboundFunc: { func: any } = { func: undefined };
 
     // Get all messages once
     const run = async () => {
       const newMessages: MessageType[] = [];
-
       const querySnapshot = await getDocs(q);
 
       if (unmounted) return; // prevent to change messages when this effect unmounted
 
-      querySnapshot.forEach((doc: any) => {
-        const data = doc.data();
-        newMessages.push({
-          ...data,
-          mine: uid === data.sender,
-          senderEmail: users[data.sender].email,
-        });
-      });
+      if (querySnapshot.size === 0) {
+        setMessages([]);
+        const q = query(
+          collection(db, 'messages'),
+          where('chatRoomId', '==', selectedChat.id),
+          orderBy('sentAt', 'asc')
+        );
 
-      setMessages(newMessages);
+        unboundFunc.func = onSnapshot(q, (querySnapshot) => {
+          if (querySnapshot.size === 0) return;
+
+          querySnapshot.forEach((doc: any) => {
+            const data = doc.data();
+
+            newMessages.push({
+              ...data,
+              mine: uid === data.sender,
+              senderEmail: users[data.sender].email,
+            });
+          });
+
+          setMessages((prevMessages) => {
+            if (prevMessages.length === 0) {
+              return newMessages;
+            }
+            return prevMessages;
+          });
+
+          unboundFunc.func();
+        });
+      } else {
+        querySnapshot.forEach((doc: any) => {
+          const data = doc.data();
+          newMessages.push({
+            ...data,
+            mine: uid === data.sender,
+            senderEmail: users[data.sender].email,
+          });
+        });
+
+        setMessages(newMessages);
+      }
+
       setWorking(false);
     };
 
@@ -299,6 +358,8 @@ function Main() {
     return () => {
       unmounted = true;
       setWorking(false);
+
+      if (unboundFunc.func) unboundFunc.func();
     };
   }, [selectedChat]);
 
@@ -349,6 +410,12 @@ function Main() {
         <title>Chat</title>
       </Head>
       <Grid container className={classes.container}>
+        <UserSelectionModal
+          users={userList.filter((u) => u.uid !== user.uid)}
+          visible={userSelectionModalVisible}
+          onClose={handleModalClose}
+          onSubmit={handleModalSubmit}
+        />
         <Grid item xs={4} className={classes.sidebar}>
           <Box className={classes.sidebarHeader}>
             <Typography variant="h6" component="div">
@@ -363,7 +430,10 @@ function Main() {
           <Divider />
           <Box className={classes.sidebarHeader}>
             <Typography variant="h6" component="div">
-              Rooms ({chatRooms.length}) <Button color="inherit">Add</Button>
+              Rooms ({chatRooms.length}){' '}
+              <Button color="inherit" onClick={handleModalOpen}>
+                Add
+              </Button>
             </Typography>
           </Box>
           <Divider />
@@ -398,7 +468,7 @@ function Main() {
                         .map((member) =>
                           member in users ? users[member].email : ''
                         )
-                        .join(',')
+                        .join(', ')
                   : ''
               }
             />
