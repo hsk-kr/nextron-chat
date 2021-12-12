@@ -11,40 +11,45 @@ import { ChatRoom as ChatRoomType } from '../types';
 interface Props {
   chatRooms: ChatRoomType[];
   onChatSelect: (selectedChatRoom: ChatRoomType) => () => void;
+  onChatLeave: (selectedChatRoom: ChatRoomType) => () => void;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     chatList: {
-      flexGrow: 1,
+      height: '25vh',
+      maxHeight: '25vh',
       overflowY: 'auto',
     },
   })
 );
 
-function ChatList({ chatRooms, onChatSelect }: Props) {
+function ChatList({ chatRooms, onChatSelect, onChatLeave }: Props) {
   const classes = useStyles();
 
   return (
     <List dense className={classes.chatList}>
-      {chatRooms.map((chatRoom, chatRoomId) => {
-        return (
-          <ListItem
-            key={chatRoomId}
-            secondaryAction={
-              <IconButton>
-                <DeleteIcon />
-              </IconButton>
-            }
-          >
-            <ListItemButton onClick={onChatSelect(chatRoom)}>
-              <ListItemText
-                primary={chatRoom.type === 'group' ? 'G' : chatRoom.members[0]}
-              />
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
+      {chatRooms &&
+        chatRooms.map((chatRoom, chatRoomId) => {
+          return (
+            <ListItem
+              key={chatRoomId}
+              secondaryAction={
+                <IconButton onClick={onChatLeave(chatRoom)}>
+                  <DeleteIcon />
+                </IconButton>
+              }
+            >
+              <ListItemButton onClick={onChatSelect(chatRoom)}>
+                <ListItemText
+                  primary={
+                    chatRoom.type === 'group' ? 'G' : chatRoom.members[0]
+                  }
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
     </List>
   );
 }
