@@ -31,6 +31,12 @@ service cloud.firestore {
 }
 ```
 
+### Firestore Indexes
+
+Collection Name | Fields Indexed
+
+- messages | chatRoomId Ascending sentAt Ascending
+
 ## Run (DEV)
 
 1. Firebase 프로젝트 생성 및 필요한 기능들을 켜놓습니다.
