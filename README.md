@@ -2,8 +2,6 @@
 
 ## 미리보기
 
-_버그가 좀 있습니다..._
-
 ## 로그인 & 1:1 채팅
 
 ![private_chat_preview](https://github.com/hsk-kr/nextron-chat/blob/main/preview/private.gif?raw=true)
@@ -12,10 +10,7 @@ _버그가 좀 있습니다..._
 
 ![group_chat_preview](https://github.com/hsk-kr/nextron-chat/blob/main/preview/group.gif?raw=true)
 
-#### Note
-
-- 클라우드 함수 처리 속도 상당히 느림 (불필요한 동기 작업으로 인해 응답 속도가 느린 것이 아닐까 생각되는데, 그렇게 많은 작업이 있어 보이지도 않는데 너무 느린 것 같기도...)
-- API를 사용한 접근은 좋지 않았는 듯, firestore에서 write 권한을 조금 더 상세히 주는 방법을 찾는게 좋지 않을까 생각됨.
+_버그 및 성능문제가 있습니다._
 
 ---
 
