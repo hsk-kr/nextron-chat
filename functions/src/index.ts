@@ -134,6 +134,72 @@ export const sendMessage = functions
     });
   });
 
+export const openGroupChat = functions
+  .region(FUNCTIONS_REGION)
+  .https.onRequest((req, res) => {
+    const appendChatRoomToUserChats = (uid: string, chatRoomId: string) => {
+      db.collection('users')
+        .doc(uid)
+        .get()
+        .then((doc: any) => {
+          if (doc.exists) {
+            const data = doc.data();
+            const { chats } = data;
+
+            chats.push(chatRoomId);
+
+            db.collection('users')
+              .doc(uid)
+              .set({
+                ...data,
+                chats,
+              });
+          }
+        });
+    };
+
+    return cors(req, res, async () => {
+      if (req.method !== 'POST') {
+        return res.status(401).json({
+          message: 'Not allowed',
+        });
+      }
+
+      const { members, token }: any = req.body;
+      if (!members || !('length' in members)) {
+        return res.status(400).json({
+          message: 'Invalid Parameters',
+        });
+      }
+
+      let uid: string = '';
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        uid = decodedToken.uid;
+      } catch {
+        return res.status(401).json({
+          message: 'Failed to verify the token',
+        });
+      }
+
+      members.push(uid);
+
+      const doc = await db.collection('chatRooms').add({
+        type: 'group',
+        members,
+      });
+
+      for (const member of members) {
+        appendChatRoomToUserChats(member, doc.id);
+      }
+
+      return res.status(200).json({
+        message: 'OK',
+        chatRoomId: doc.id,
+      });
+    });
+  });
+
 export const leaveChatRoom = functions
   .region(FUNCTIONS_REGION)
   .https.onRequest((req, res) => {
@@ -151,9 +217,14 @@ export const leaveChatRoom = functions
       let members = data.members;
       members = members.filter((userId: any) => userId !== uid);
 
-      db.collection('chatRooms').doc(chatRoomId).update({
-        members,
-      });
+      // update by query would be better.
+      await db
+        .collection('chatRooms')
+        .doc(chatRoomId)
+        .set({
+          ...data,
+          members,
+        });
     };
 
     const removeChatRoomInUserChats = async (
@@ -161,15 +232,21 @@ export const leaveChatRoom = functions
       chatRoomId: string
     ) => {
       const doc = await db.collection('users').doc(uid).get();
-
       if (!doc.exists) return;
 
-      let chats = doc.data().chats;
+      const data = doc.data();
+
+      let chats = data.chats;
       chats = chats.filter((chatId: any) => chatRoomId !== chatId);
 
-      db.collection('users').doc(uid).update({
-        chats,
-      });
+      // // update by query would be better.
+      await db
+        .collection('users')
+        .doc(uid)
+        .set({
+          ...data,
+          chats,
+        });
     };
 
     return cors(req, res, async () => {
@@ -196,8 +273,8 @@ export const leaveChatRoom = functions
         });
       }
 
-      removeMemberInChatRoomIfChatIsGroup(uid, chatRoomId);
-      removeChatRoomInUserChats(uid, chatRoomId);
+      await removeMemberInChatRoomIfChatIsGroup(uid, chatRoomId);
+      await removeChatRoomInUserChats(uid, chatRoomId);
 
       return res.status(200).json({
         message: 'OK',
