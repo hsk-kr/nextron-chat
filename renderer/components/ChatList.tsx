@@ -43,7 +43,9 @@ function ChatList({ chatRooms, onChatSelect, onChatLeave }: Props) {
               <ListItemButton onClick={onChatSelect(chatRoom)}>
                 <ListItemText
                   primary={
-                    chatRoom.type === 'group' ? 'G' : chatRoom.members[0]
+                    chatRoom.type === 'group'
+                      ? chatRoom.members.join(', ').substring(0, 24) + '...'
+                      : chatRoom.members[0]
                   }
                 />
               </ListItemButton>
